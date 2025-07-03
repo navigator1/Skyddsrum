@@ -456,17 +456,6 @@ app.get('/test', (req, res) => {
   res.json({ message: 'Server fungerar!', timestamp: new Date().toISOString() });
 });
 
-// Servera React build i produktion
-if (process.env.NODE_ENV === 'production') {
-  // Servera statiska filer från client/build
-  app.use(express.static(path.join(__dirname, 'client/build')));
-  
-  // Catch-all handler: skicka tillbaka React's index.html fil för alla icke-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build/index.html'));
-  });
-}
-
 // Ladda initial data vid server start
 async function initializeServer() {
   console.log('🚀 Startar server för Stockholms län...');
@@ -474,6 +463,17 @@ async function initializeServer() {
   console.log(`🏛️ Inkluderar ${STOCKHOLM_MUNICIPALITIES.length} kommuner:`, STOCKHOLM_MUNICIPALITIES.join(', '));
   
   await getSkyddsrumData();
+
+  // Servera React build i produktion - EFTER alla API routes
+  if (process.env.NODE_ENV === 'production') {
+    // Servera statiska filer från client/build
+    app.use(express.static(path.join(__dirname, 'client/build')));
+    
+    // Catch-all handler: skicka tillbaka React's index.html fil för alla icke-API routes
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'client/build/index.html'));
+    });
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server körs på port ${PORT}`);
