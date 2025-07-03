@@ -451,12 +451,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Test endpoint för att se om servern fungerar
+app.get('/test', (req, res) => {
+  res.json({ message: 'Server fungerar!', timestamp: new Date().toISOString() });
+});
+
 // Servera React build i produktion
 if (process.env.NODE_ENV === 'production') {
+  // Servera statiska filer från client/build
   app.use(express.static(path.join(__dirname, 'client/build')));
   
+  // Catch-all handler: skicka tillbaka React's index.html fil för alla icke-API routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'client/build', 'index.html'));
+    res.sendFile(path.join(__dirname, 'client/build/index.html'));
   });
 }
 
@@ -467,14 +474,6 @@ async function initializeServer() {
   console.log(`🏛️ Inkluderar ${STOCKHOLM_MUNICIPALITIES.length} kommuner:`, STOCKHOLM_MUNICIPALITIES.join(', '));
   
   await getSkyddsrumData();
-
-  if (process.env.NODE_ENV === 'production') {
-    const path = require('path');
-    app.use(express.static(path.join(__dirname, 'client', 'build')));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
-    });
-  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server körs på port ${PORT}`);
