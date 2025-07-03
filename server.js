@@ -467,7 +467,15 @@ async function initializeServer() {
   console.log(`🏛️ Inkluderar ${STOCKHOLM_MUNICIPALITIES.length} kommuner:`, STOCKHOLM_MUNICIPALITIES.join(', '));
   
   await getSkyddsrumData();
-  
+
+  if (process.env.NODE_ENV === 'production') {
+    const path = require('path');
+    app.use(express.static(path.join(__dirname, 'client', 'build')));
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(__dirname, 'client', 'build', 'index.html'));
+    });
+  }
+
   app.listen(PORT, () => {
     console.log(`🚀 Server körs på port ${PORT}`);
     console.log(`📍 Skyddsrum data laddad: ${skyddsrumCache.length} skyddsrum`);
