@@ -7,9 +7,42 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Verbose logging
+console.log('🔧 Starting Skyddsrum Finder Server...');
+console.log('📊 Environment:', process.env.NODE_ENV || 'development');
+console.log('🌐 Port:', PORT);
+console.log('📁 Current directory:', __dirname);
+console.log('📦 Client build path:', path.join(__dirname, 'client/build'));
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Request logging middleware
+app.use((req, res, next) => {
+  console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+  next();
+});
+
+// Response logging middleware
+app.use((req, res, next) => {
+  const originalSend = res.send;
+  const originalJson = res.json;
+  
+  res.send = function(body) {
+    console.log(`📤 ${req.method} ${req.path} - Status: ${res.statusCode}`);
+    console.log(`📝 Full Response Body:`, body);
+    return originalSend.call(this, body);
+  };
+  
+  res.json = function(obj) {
+    console.log(`📤 ${req.method} ${req.path} - Status: ${res.statusCode}`);
+    console.log(`📝 Full JSON Response:`, JSON.stringify(obj, null, 2));
+    return originalJson.call(this, obj);
+  };
+  
+  next();
+});
 
 // MSB's WFS endpoint för skyddsrum
 const MSB_WFS_URL = 'https://inspire.msb.se/skyddsrum/wfs';
@@ -47,23 +80,33 @@ function isWithinStockholmRegion(lat, lng) {
 async function fetchSkyddsrumFromMSB() {
   try {
     console.log('🔄 Hämtar skyddsrum från MSB API...');
+    console.log('🌐 MSB URL:', MSB_WFS_URL);
+    
+    const params = {
+      service: 'WFS',
+      version: '2.0.0',
+      request: 'GetFeature',
+      typeName: 'skyddsrum:Skyddsrum',
+      outputFormat: 'application/json',
+      srsName: 'EPSG:4326',
+      // Begränsa till Stockholms län område
+      bbox: `${STOCKHOLM_BOUNDS.west},${STOCKHOLM_BOUNDS.south},${STOCKHOLM_BOUNDS.east},${STOCKHOLM_BOUNDS.north},EPSG:4326`
+    };
+    
+    console.log('📊 Request parameters:', params);
     
     const response = await axios.get(MSB_WFS_URL, {
-      params: {
-        service: 'WFS',
-        version: '2.0.0',
-        request: 'GetFeature',
-        typeName: 'skyddsrum:Skyddsrum',
-        outputFormat: 'application/json',
-        srsName: 'EPSG:4326',
-        // Begränsa till Stockholms län område
-        bbox: `${STOCKHOLM_BOUNDS.west},${STOCKHOLM_BOUNDS.south},${STOCKHOLM_BOUNDS.east},${STOCKHOLM_BOUNDS.north},EPSG:4326`
-      },
+      params: params,
       timeout: 15000
     });
 
+    console.log('✅ MSB API Response received');
+    console.log('📊 Response status:', response.status);
+    console.log('📊 Response headers:', response.headers);
+    
     if (response.data && response.data.features) {
-      console.log(`📥 Hämtade ${response.data.features.length} skyddsrum från MSB`);
+      console.log(`📥 Raw data from MSB: ${response.data.features.length} features`);
+      console.log('📊 Sample feature:', JSON.stringify(response.data.features[0], null, 2));
       
       const filteredShelters = response.data.features
         .filter(feature => {
@@ -92,16 +135,24 @@ async function fetchSkyddsrumFromMSB() {
           };
         });
 
-      console.log(`✅ Filtrerade till ${filteredShelters.length} skyddsrum i Stockholms län`);
+      console.log(`✅ Processed and filtered to ${filteredShelters.length} shelters in Stockholm County`);
+      console.log('📊 Sample processed shelter:', JSON.stringify(filteredShelters[0], null, 2));
       return filteredShelters;
+    } else {
+      console.log('⚠️ No features in MSB API response');
+      console.log('📊 Full response data:', JSON.stringify(response.data, null, 2));
     }
     
-    console.log('⚠️ Ingen data från MSB API, använder fallback');
+    console.log('⚠️ Using fallback data instead of MSB API');
     return getLocalSkyddsrumData();
     
   } catch (error) {
-    console.error('❌ Fel vid hämtning från MSB API:', error.message);
-    console.log('🔄 Använder lokal fallback data');
+    console.error('❌ MSB API Error Details:');
+    console.error('❌ Error message:', error.message);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error response:', error.response?.data);
+    console.error('❌ Error status:', error.response?.status);
+    console.log('🔄 Falling back to local data');
     return getLocalSkyddsrumData();
   }
 }
@@ -398,11 +449,13 @@ app.get('/api/shelters/municipality/:municipality', async (req, res) => {
 
 // API endpoint för att få alla skyddsrum
 app.get('/api/shelters', async (req, res) => {
+  console.log('🏠 /api/shelters endpoint called');
   try {
     const skyddsrumData = await getSkyddsrumData();
+    console.log(`📊 Returning ${skyddsrumData.length} shelters`);
     res.json(skyddsrumData);
   } catch (error) {
-    console.error('Fel vid hämtning av skyddsrum:', error);
+    console.error('❌ Error in /api/shelters:', error);
     res.status(500).json({ error: 'Serverfel vid hämtning av skyddsrum' });
   }
 });
@@ -453,6 +506,7 @@ app.get('/api/health', (req, res) => {
 
 // Test endpoint för att se om servern fungerar
 app.get('/test', (req, res) => {
+  console.log('🧪 Test endpoint called');
   res.json({ message: 'Server fungerar!', timestamp: new Date().toISOString() });
 });
 
@@ -462,24 +516,63 @@ async function initializeServer() {
   console.log('📡 Hämtar initial data från MSB...');
   console.log(`🏛️ Inkluderar ${STOCKHOLM_MUNICIPALITIES.length} kommuner:`, STOCKHOLM_MUNICIPALITIES.join(', '));
   
-  await getSkyddsrumData();
+  try {
+    console.log('⏳ Calling getSkyddsrumData()...');
+    await getSkyddsrumData();
+    console.log('✅ Data loading completed successfully');
+  } catch (error) {
+    console.error('❌ Error during data loading:', error);
+  }
 
   // Servera React build i produktion - EFTER alla API routes
   if (process.env.NODE_ENV === 'production') {
+    console.log('🏭 Production mode detected - setting up static file serving');
+    
+    // Check if build directory exists
+    const buildPath = path.join(__dirname, 'client/build');
+    const indexPath = path.join(buildPath, 'index.html');
+    console.log('📂 Build directory path:', buildPath);
+    console.log('📄 Index file path:', indexPath);
+    
+    try {
+      const fs = require('fs');
+      if (fs.existsSync(buildPath)) {
+        console.log('✅ Build directory exists');
+        if (fs.existsSync(indexPath)) {
+          console.log('✅ Index.html exists');
+        } else {
+          console.log('❌ Index.html NOT found!');
+        }
+      } else {
+        console.log('❌ Build directory NOT found!');
+      }
+    } catch (err) {
+      console.error('❌ Error checking build files:', err);
+    }
+    
     // Servera statiska filer från client/build
     app.use(express.static(path.join(__dirname, 'client/build')));
+    console.log('📁 Static files middleware configured');
     
     // Catch-all handler: skicka tillbaka React's index.html fil för alla icke-API routes
     app.get('*', (req, res) => {
-      res.sendFile(path.join(__dirname, 'client/build/index.html'));
+      console.log('🔄 Catch-all route triggered for:', req.path);
+      const indexFile = path.join(__dirname, 'client/build/index.html');
+      console.log('📄 Serving index.html from:', indexFile);
+      res.sendFile(indexFile);
     });
+    console.log('🎯 Catch-all route configured');
+  } else {
+    console.log('🛠️ Development mode - no static file serving');
   }
 
   app.listen(PORT, () => {
+    console.log('🎉 =================================');
     console.log(`🚀 Server körs på port ${PORT}`);
     console.log(`📍 Skyddsrum data laddad: ${skyddsrumCache.length} skyddsrum`);
     console.log(`🌍 Täcker hela Stockholms län`);
     console.log(`🔗 Datakälla: MSB öppen data`);
+    console.log('🎉 =================================');
   });
 }
 
