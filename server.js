@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 const axios = require('axios');
 require('dotenv').config();
 
@@ -45,7 +46,7 @@ app.use((req, res, next) => {
 });
 
 // MSB's WFS endpoint för skyddsrum
-const MSB_WFS_URL = 'https://inspire.msb.se/skyddsrum/wfs';
+const MSB_WFS_URL = 'https://inspire.msb.se/geoserver/wfs';
 
 // Stockholms län kommuner (för filtrering)
 const STOCKHOLM_MUNICIPALITIES = [
@@ -172,8 +173,69 @@ function extractMunicipality(address) {
   return 'Stockholm'; // Default
 }
 
-// Utökad fallback lokal data för hela Stockholms län
+// Läs skyddsrum från den förbättrade JSON-filen
 function getLocalSkyddsrumData() {
+  try {
+    // Försök läsa olika versioner av data (i prioritetsordning)
+    const finalPath = path.join(__dirname, 'data', 'skyddsrum-stockholm-final.json');
+    const improvedPath = path.join(__dirname, 'data', 'skyddsrum-stockholm-improved.json');
+    const originalPath = path.join(__dirname, 'data', 'skyddsrum-stockholm.json');
+    
+    let dataPath = originalPath;
+    
+    if (fs.existsSync(finalPath)) {
+      // Kontrollera att final-versionen inte är tom
+      const finalData = JSON.parse(fs.readFileSync(finalPath, 'utf8'));
+      if (finalData.shelters && finalData.shelters.length > 0 && finalData.shelters[0].name) {
+        dataPath = finalPath;
+        console.log('📂 Använder final skyddsrum-data (förbättrad + adresser)');
+      } else {
+        console.log('⚠️ Final-data verkar vara skadad, använder improved-data');
+        dataPath = improvedPath;
+      }
+    } else if (fs.existsSync(improvedPath)) {
+      dataPath = improvedPath;
+      console.log('📂 Använder förbättrad skyddsrum-data');
+    } else {
+      console.log('📂 Använder ursprunglig skyddsrum-data');
+    }
+    
+    console.log('📂 Läser lokal skyddsrum-data från:', dataPath);
+    const data = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
+    
+    if (data && data.shelters && Array.isArray(data.shelters)) {
+      console.log(`✅ Laddade ${data.shelters.length} skyddsrum från lokal fil`);
+      console.log(`📊 Data uppdaterad: ${data.lastUpdated}`);
+      console.log(`📊 Källa: ${data.source}`);
+      
+      // Visa kommun-statistik
+      const municipalities = {};
+      data.shelters.forEach(shelter => {
+        municipalities[shelter.municipality] = (municipalities[shelter.municipality] || 0) + 1;
+      });
+      
+      console.log('📊 Kommun-fördelning:');
+      Object.entries(municipalities)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .forEach(([municipality, count]) => {
+          console.log(`  ${municipality}: ${count} skyddsrum`);
+        });
+      
+      return data.shelters;
+    } else {
+      console.log('⚠️ Ogiltig data-struktur i lokal fil');
+    }
+  } catch (error) {
+    console.error('❌ Fel vid läsning av lokal skyddsrum-data:', error);
+  }
+  
+  console.log('⚠️ Använder minimal fallback-data');
+  return getMinimalFallbackData();
+}
+
+// Minimal fallback om allt annat misslyckas
+function getMinimalFallbackData() {
   return [
     // Stockholm stad
     {
@@ -375,9 +437,9 @@ async function getSkyddsrumData() {
     return skyddsrumCache;
   }
 
-  // Hämta ny data från MSB
-  console.log('🔄 Hämtar aktuell data från MSB för Stockholms län...');
-  skyddsrumCache = await fetchSkyddsrumFromMSB();
+  // Hämta data från lokal JSON-fil (uppdaterad från MSB Shapefile)
+  console.log('🔄 Hämtar aktuell data från lokal fil (MSB Shapefile)...');
+  skyddsrumCache = getLocalSkyddsrumData();
   lastCacheUpdate = now;
   
   console.log(`✅ Skyddsrum data uppdaterad: ${skyddsrumCache.length} skyddsrum i Stockholms län`);
@@ -398,7 +460,7 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
 
 // API endpoint för att hitta närmaste skyddsrum
 app.post('/api/find-nearest', async (req, res) => {
-  const { lat, lng } = req.body;
+  const { lat, lng, limit = 5 } = req.body;
   
   if (!lat || !lng) {
     return res.status(400).json({ error: 'Latitud och longitud krävs' });
@@ -421,8 +483,36 @@ app.post('/api/find-nearest', async (req, res) => {
     // Sortera efter avstånd
     skyddsrumWithDistance.sort((a, b) => a.distance - b.distance);
 
-    // Returnera närmaste skyddsrum
-    res.json(skyddsrumWithDistance[0]);
+    // Returnera de närmaste skyddsrummen
+    const nearestShelters = skyddsrumWithDistance.slice(0, Math.min(limit, 10));
+    
+    // Förbered respons med extra information
+    const response = {
+      userLocation: { lat, lng },
+      nearestShelters: nearestShelters.map(shelter => ({
+        id: shelter.id,
+        name: shelter.name,
+        address: shelter.address,
+        municipality: shelter.municipality,
+        distance: Math.round(shelter.distance * 1000), // meters
+        distanceText: shelter.distance < 1 ? 
+          `${Math.round(shelter.distance * 1000)}m` : 
+          `${shelter.distance.toFixed(1)}km`,
+        capacity: shelter.capacity,
+        lat: shelter.lat,
+        lng: shelter.lng,
+        description: shelter.description
+      })),
+      totalSheltersInArea: skyddsrumWithDistance.filter(s => s.distance <= 2).length, // inom 2km
+      searchRadius: '2km'
+    };
+
+    // Logga för debugging
+    console.log(`🔍 Sök från (${lat}, ${lng})`);
+    console.log(`📍 Närmaste skyddsrum: ${nearestShelters[0].name} - ${nearestShelters[0].distance.toFixed(3)}km`);
+    console.log(`📊 Totalt ${nearestShelters.length} skyddsrum returnerade`);
+    
+    res.json(response);
   } catch (error) {
     console.error('Fel vid beräkning av avstånd:', error);
     res.status(500).json({ error: 'Serverfel vid beräkning av avstånd' });

@@ -1,0 +1,148 @@
+{
+  "feed": {
+    "$": {
+      "xmlns": "http://www.w3.org/2005/Atom",
+      "xmlns:georss": "http://www.georss.org/georss",
+      "xml:lang": "swe",
+      "xmlns:xsi": "http://www.w3.org/2001/XMLSchema-instance",
+      "xsi:schemaLocation": "http://www.w3.org/2005/Atom http://inspire-geoportal.ec.europa.eu/schemas/inspire/atom/1.0/atom.xsd"
+    },
+    "title": [
+      "INSPIRE nedladdningstjänst för Skyddsrum i Sverige"
+    ],
+    "subtitle": [
+      "Skyddsrum INSPIRE Nerladdningstjänst"
+    ],
+    "link": [
+      {
+        "$": {
+          "href": "https://www.geodata.se/geodataportalen/srv/en/csw?request=GetRecordById&service=CSW&version=2.0.2&elementSetName=full&id=MISSING&outputSchema=csw:IsoRecord",
+          "rel": "describedby",
+          "type": "application/xml",
+          "hreflang": "swe"
+        }
+      },
+      {
+        "$": {
+          "href": "https://inspire.msb.se/nedladdning/skyddsrum.xml",
+          "rel": "self",
+          "type": "application/atom+xml",
+          "title": "This document",
+          "hreflang": "swe"
+        }
+      },
+      {
+        "$": {
+          "href": "https://inspire.msb.se/nedladdning/MSB_TopAtomFeed_skyddsrum.xml",
+          "rel": "up",
+          "type": "application/atom+xml",
+          "hreflang": "swe",
+          "title": "The parent service feed document"
+        }
+      },
+      {
+        "$": {
+          "href": "https://inspire.ec.europa.eu/featureconcept/GovernmentalService",
+          "rel": "describedby",
+          "type": "text/html"
+        }
+      }
+    ],
+    "id": [
+      "https://inspire.msb.se/nedladdning/skyddsrum.xml"
+    ],
+    "rights": [
+      "No Limitations"
+    ],
+    "updated": [
+      "2018-12-17T15:00:00Z"
+    ],
+    "author": [
+      {
+        "name": [
+          "MSB"
+        ],
+        "email": [
+          "registrator@msb.se"
+        ]
+      }
+    ],
+    "icon": [
+      "https://www.krisinformation.se/web/upload/Krisinformation.se/lattlast/msb-logotyp.png"
+    ],
+    "logo": [
+      "https://4.bp.blogspot.com/_owfDW5xlt1I/SSN2E6T38iI/AAAAAAAAAIw/DSYRXS-s9yA/S1600-R/limmad+loggaplus.PNG"
+    ],
+    "entry": [
+      {
+        "$": {
+          "xml:lang": "swe"
+        },
+        "inspire_dls:spatial_dataset_identifier_code": [
+          {
+            "_": "8343e110-6ea8-44ed-995d-93d6d4f1d47b",
+            "$": {
+              "xmlns:inspire_dls": "http://inspire.ec.europa.eu/schemas/inspire_dls/1.0"
+            }
+          }
+        ],
+        "inspire_dls:spatial_dataset_identifier_namespace": [
+          {
+            "_": "https://www.msb.se",
+            "$": {
+              "xmlns:inspire_dls": "http://inspire.ec.europa.eu/schemas/inspire_dls/1.0"
+            }
+          }
+        ],
+        "category": [
+          {
+            "$": {
+              "term": "http://www.opengis.net/def/crs/EPSG/0/4258",
+              "label": "EPSG:4258"
+            }
+          }
+        ],
+        "content": [
+          {
+            "_": "Skyddsrum i Sverige, ladda ner här:<br />\r\n\t\t<br /><a href=\"https://inspire.msb.se/nedladdning/filer/shape/Skyddsrum.zip\">Skyddsrum.zip (SHAPE EPSG/0/3006)</a><br />      \r\n\t\t<br /><a href=\"https://inspire.msb.se/nedladdning/filer/gml/zip/us.governmentalServiceCivilProtectionSiteCore.zip\">us.governmentalServiceCivilProtectionSiteCore.zip (GML EPSG/0/4258)</a><br /> \r\n\t\t<br /><a href=\"https://inspire.msb.se/nedladdning/filer/gml/zip/us.governmentalServiceCivilProtectionSiteExtended.zip\">us.governmentalServiceCivilProtectionSiteExtended.zip (GML EPSG/0/4258)</a><br /> \r\n\t\t",
+            "$": {
+              "type": "html"
+            }
+          }
+        ],
+        "id": [
+          "https://inspire.msb.se/nedladdning/filer/gml/us.governmentalServiceCivilProtectionSiteCore.gml"
+        ],
+        "link": [
+          {
+            "$": {
+              "href": "https://www.geodata.se/geodataportalen/srv/eng/csw-inspire?request=GetRecordById&service=CSW&version=2.0.2&elementSetName=full&id=6341813c-bfa3-45df-8234-13cf583bf533&outputSchema=csw:IsoRecord",
+              "rel": "describedby",
+              "type": "application/xml",
+              "hreflang": "swe"
+            }
+          },
+          {
+            "$": {
+              "href": "https://inspire.msb.se/nedladdning/filer/gml/us.governmentalServiceCivilProtectionSiteCore.gml",
+              "rel": "alternate",
+              "type": "application/gml+xml",
+              "length": "4838080",
+              "title": "Public shelters INSPIRE data in shape format",
+              "hreflang": "swe"
+            }
+          }
+        ],
+        "title": [
+          "Skyddsrum i Sverige"
+        ],
+        "updated": [
+          "2022-03-09T15:00:00Z"
+        ],
+        "georss:polygon": [
+          "6111214 244918 6111214 921277 7671253 921277 7671253 244918 6111214 244918"
+        ]
+      }
+    ]
+  }
+}
