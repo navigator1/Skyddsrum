@@ -85,7 +85,7 @@ const improvedShelters = data.shelters.map((shelter, index) => {
   
   // Förbättra adresser
   if (improved.address) {
-    // Fixa textkodning - specifika och korrekta ersättningar
+    // Fixa textkodning - comprehensive Swedish character fixes
     improved.address = improved.address
       // Specifika platsnamn först
       .replace(/M\?rby/g, 'Mörby')        // Mörby (inte Märby!)
@@ -94,18 +94,86 @@ const improvedShelters = data.shelters.map((shelter, index) => {
       .replace(/K\?ping/g, 'Köping')      // Köping
       .replace(/F\?rmaket/g, 'Förmaket')  // Förmaket
       .replace(/Upplands V\?sby/g, 'Upplands Väsby')  // Upplands Väsby
-      // Specifika fastighetsnamn
+      
+      // Specifika fastighetsnamn och gatunamn
       .replace(/Gyllenl\?dret/g, 'Gyllenlädret')     // Gyllenlädret
       .replace(/G\?stsalen/g, 'Gästsalen')           // Gästsalen
       .replace(/G\?stv\?ningen/g, 'Gästvåningen')    // Gästvåningen
       .replace(/Herrek\?ket/g, 'Herreköket')         // Herreköket
       .replace(/Herres\?tet/g, 'Herresätet')         // Herresätet
+      .replace(/Lantm\?taren/g, 'Lantmätaren')       // Lantmätaren
+      .replace(/Bj\?rnen/g, 'Björnen')               // Björnen
+      .replace(/N\?ckebro/g, 'Näckebro')             // Näckebro
+      .replace(/N\?ckstr\?m/g, 'Näckström')          // Näckström
+      .replace(/S\?der/g, 'Söder')                   // Söder-
+      .replace(/Köksg\?rden/g, 'Köksgården')         // Köksgården
+      .replace(/Roseng\?rden/g, 'Rosengården')       // Rosengården
+      .replace(/\?rtag\?rden/g, 'Örtagården')        // Örtagården
+      .replace(/Melong\?rden/g, 'Melongården')       // Melongården
+      .replace(/L\?nnd\?rren/g, 'Länndörren')        // Länndörren
+      .replace(/L\?vsalen/g, 'Lövsalen')             // Lövsalen
+      .replace(/Mj\?lkkammaren/g, 'Mjölkkammaren')   // Mjölkkammaren
+      .replace(/Paradv\?ningen/g, 'Paradvåningen')   // Paradvåningen
+      .replace(/Schackbr\?det/g, 'Schackbrädet')     // Schackbrädet
+      .replace(/Sk\?nkrummet/g, 'Skänkrummet')       // Skänkrummet
+      .replace(/Bigarr\?en/g, 'Bigarråen')           // Bigarråen
+      .replace(/Trym\?n/g, 'Trymön')                 // Trymön
+      .replace(/V\?ggf\?ltet/g, 'Väggfältet')        // Väggfältet
+      .replace(/Provr\?ret/g, 'Provröret')           // Provröret
+      .replace(/Hälls\?tra/g, 'Hällsötra')           // Hällsötra
+      .replace(/Vit\?/g, 'Vitö')                     // Vitö
+      
       // Mer allmänna ersättningar (försiktiga)
       .replace(/\?nder/g, 'änder')        // -änder endings
       .replace(/\?ng/g, 'äng')            // -äng endings
       .replace(/\?ll/g, 'äll')            // -äll endings
       .replace(/\?k/g, 'ök')              // -ök patterns
       .replace(/\?s/g, 'äs')              // -äs patterns
+      .replace(/\?rden/g, 'ården')        // -ården endings
+      .replace(/\?ren/g, 'ören')          // -ören endings
+      .replace(/\?ret/g, 'öret')          // -öret endings
+      .replace(/\?tra/g, 'ötra')          // -ötra endings
+      .replace(/\?ningen/g, 'åningen')    // -åningen endings
+      .replace(/\?det/g, 'ädet')          // -ädet endings
+      .replace(/\?en/g, 'ån')             // -ån endings (at end of word)
+      .replace(/\?n/g, 'ön')              // -ön endings (at end of word)
+      
+      // Additional common Swedish patterns
+      .replace(/\?rd /g, 'ård ')          // G?rd -> Gård
+      .replace(/\?rd$/g, 'ård')           // G?rd -> Gård (at end)
+      .replace(/\?rsta/g, 'ärsta')        // M?rsta -> Märsta
+      .replace(/\?der/g, 'äder')          // Ov?der -> Oväder
+      .replace(/\?gren/g, 'ögren')        // H?gren -> Högren
+      .replace(/\?sten/g, 'ästen')        // H?sten -> Hästen
+      .replace(/\?ring/g, 'öring')        // Lax?ring -> Laxöring
+      .replace(/\?häst/g, 'öhäst')        // Sj?häst -> Sjöhäst
+      .replace(/\?lunk/g, 'ötlunk')       // Gr?tlunk -> Grötlunk
+      .replace(/\?monk/g, 'åmunk')        // Gr?monk -> Gråmunk
+      .replace(/\?rre/g, 'örre')          // St?rre -> Större
+      .replace(/\?tsman/g, 'åtsman')      // B?tsman -> Båtsman
+      .replace(/\?dra/g, 'ädra')          // Br?dra -> Brädra
+      .replace(/\?rgyl/g, 'örgyl')        // F?rgyl -> Förgyl
+      .replace(/\?gar/g, 'ägar')          // B?gar -> Bägar
+      .replace(/\?rret/g, 'ärret')        // Dyk?rret -> Dykärret
+      .replace(/\?ttsskolan/g, 'ättsskolan') // Bansl?ttsskolan -> Banslätt-
+      .replace(/\?ls\?/g, 'elsö')         // Vendels? -> Vendelsö
+      
+      // Additional patterns found in analysis
+      .replace(/\?gersten/g, 'ägersten')  // H?gersten -> Hägersten
+      .replace(/\?berg/g, 'öberg')        // Gr?berg -> Gröberg
+      .replace(/\?len/g, 'ölen')          // P?len -> Pölen
+      .replace(/\?ringe/g, 'öringe')      // B?ringe -> Böringe
+      .replace(/\?minge/g, 'äminge')      // Hj?lminge -> Hjälminge
+      .replace(/\?rvet/g, 'örvet')        // Tr?lberget -> Trölberget
+      .replace(/\?rpojken/g, 'örpojken')  // L?rpojken -> Lörpojken
+      .replace(/\?vern/g, 'övern')        // Kl?vern -> Klövern
+      .replace(/\?rdaren/g, 'årdaren')    // V?rdaren -> Vårdaren
+      .replace(/\?rtuna/g, 'örtuna')      // G?rtuna -> Görtuna
+      .replace(/\?mpinge/g, 'ämpinge')    // K?mpinge -> Kämpinge
+      .replace(/\?ttinge/g, 'ättinge')    // L?ttinge -> Lättinge
+      .replace(/\?rven/g, 'ärven')        // Korsr?ven -> Korsraven
+      .replace(/\?l\?/g, 'elö')           // Vendels? -> Vendelsö (again)
+      
       // Undvik generell ? -> ö ersättning för att inte förstöra andra ord
     
     // Lägg till kommun i adress om den saknas
