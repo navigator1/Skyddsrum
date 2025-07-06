@@ -494,7 +494,7 @@ app.post('/api/find-nearest', async (req, res) => {
         name: shelter.name,
         address: shelter.address,
         municipality: shelter.municipality,
-        distance: Math.round(shelter.distance * 1000), // meters
+        distance: shelter.distance, // kilometer (som float)
         distanceText: shelter.distance < 1 ? 
           `${Math.round(shelter.distance * 1000)}m` : 
           `${shelter.distance.toFixed(1)}km`,
