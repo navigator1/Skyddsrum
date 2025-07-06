@@ -24,7 +24,7 @@ const translations = {
       "Information baseras på MSB:s öppna data",
       "Vid verklig nödsituation, följ myndigheternas anvisningar"
     ],
-    version: "Version 1.0.0 | Utvecklad för Stockholms län",
+    version: "Version 1.2.0 | Utvecklad för Stockholms län",
     errors: {
       geolocationNotSupported: "Geolocation stöds inte av denna webbläsare",
       tryModernBrowser: "Prova en modern webbläsare som Chrome, Firefox eller Safari",
@@ -58,7 +58,7 @@ const translations = {
       "Information is based on MSB's open data",
       "In a real emergency, follow the authorities' instructions"
     ],
-    version: "Version 1.0.0 | Developed for Stockholm County",
+    version: "Version 1.2.0 | Developed for Stockholm County",
     errors: {
       geolocationNotSupported: "Geolocation is not supported by this browser",
       tryModernBrowser: "Try a modern browser like Chrome, Firefox or Safari",

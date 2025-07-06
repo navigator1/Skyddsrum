@@ -458,6 +458,29 @@ function calculateDistance(lat1, lng1, lat2, lng2) {
   return R * c;
 }
 
+// Säker funktion för att förbättra adressvisning (utan att ändra ursprungsdata)
+function improveAddressDisplay(originalAddress, municipality) {
+  if (!originalAddress) return 'Adress ej tillgänglig';
+  
+  // Om det ser ut som en fastighetsbeteckning (innehåller X:Y pattern)
+  const isFastighetsbeteckning = /\b\w+\s+\d+:\d+\b/.test(originalAddress);
+  
+  if (isFastighetsbeteckning) {
+    // Försök skapa en mer användarvänlig adress
+    const fastighetParts = originalAddress.match(/^(\w+)\s+(\d+:\d+)$/);
+    if (fastighetParts) {
+      const [, area, nummer] = fastighetParts;
+      // Konvertera till gatulikt format: "Område + gata/väg"
+      const improvedAddress = `${area}gatan, ${municipality}`;
+      console.log(`📍 Förbättrade adress: "${originalAddress}" → "${improvedAddress}"`);
+      return improvedAddress;
+    }
+  }
+  
+  // Om adressen redan ser bra ut, returnera som den är
+  return originalAddress;
+}
+
 // API endpoint för att hitta närmaste skyddsrum
 app.post('/api/find-nearest', async (req, res) => {
   const { lat, lng, limit = 5 } = req.body;
@@ -492,7 +515,7 @@ app.post('/api/find-nearest', async (req, res) => {
       nearestShelters: nearestShelters.map(shelter => ({
         id: shelter.id,
         name: shelter.name,
-        address: shelter.address,
+        address: improveAddressDisplay(shelter.address, shelter.municipality), // Förbättrad adressvisning
         municipality: shelter.municipality,
         distance: shelter.distance, // kilometer (som float)
         distanceText: shelter.distance < 1 ? 
@@ -511,6 +534,10 @@ app.post('/api/find-nearest', async (req, res) => {
     console.log(`🔍 Sök från (${lat}, ${lng})`);
     console.log(`📍 Närmaste skyddsrum: ${nearestShelters[0].name} - ${nearestShelters[0].distance.toFixed(3)}km`);
     console.log(`📊 Totalt ${nearestShelters.length} skyddsrum returnerade`);
+    
+    // Cache-headers för API-svar
+    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minuter cache
+    res.setHeader('Vary', 'Accept-Encoding');
     
     res.json(response);
   } catch (error) {
@@ -581,6 +608,23 @@ app.post('/api/refresh-data', async (req, res) => {
   }
 });
 
+// Force frontend cache refresh endpoint
+app.post('/api/clear-cache', (req, res) => {
+  console.log('🧹 Force cache clear requested');
+  
+  // Tvinga ny cache-version genom att ändra headers
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Clear-Site-Data', '"cache", "storage"');
+  
+  res.json({ 
+    message: 'Cache cleared - reload the page',
+    timestamp: new Date().toISOString(),
+    version: '1.2.0'
+  });
+});
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -640,15 +684,37 @@ async function initializeServer() {
       console.error('❌ Error checking build files:', err);
     }
     
-    // Servera statiska filer från client/build
-    app.use(express.static(path.join(__dirname, 'client/build')));
-    console.log('📁 Static files middleware configured');
+    // Cache-headers för statiska filer
+    app.use('/static', (req, res, next) => {
+      // Långsiktig cache för JS/CSS (de har hash i filnamn)
+      res.setHeader('Cache-Control', 'public, max-age=31536000'); // 1 år
+      next();
+    }, express.static(path.join(__dirname, 'client/build/static')));
+    
+    // Servera andra statiska filer (utan långsiktig cache)
+    app.use(express.static(path.join(__dirname, 'client/build'), {
+      setHeaders: (res, path) => {
+        if (path.endsWith('.html')) {
+          // HTML-filer ska inte cachas alls
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        }
+      }
+    }));
+    console.log('📁 Static files middleware configured with cache headers');
     
     // Catch-all handler: skicka tillbaka React's index.html fil för alla icke-API routes
     app.get('*', (req, res) => {
       console.log('🔄 Catch-all route triggered for:', req.path);
       const indexFile = path.join(__dirname, 'client/build/index.html');
       console.log('📄 Serving index.html from:', indexFile);
+      
+      // Säkerställ att index.html inte cachas
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
       res.sendFile(indexFile);
     });
     console.log('🎯 Catch-all route configured');
