@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Frontend</title>
+</head>
+<body>
+    <h1>Test Frontend API</h1>
+    <button id="testBtn">Test API Call</button>
+    <div id="result"></div>
+    
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            console.log('Button clicked!');
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // Simulera geolocation
+                const testData = {
+                    lat: 59.3293,
+                    lng: 18.0686
+                };
+                
+                console.log('Sending request to API...');
+                const response = await fetch('/api/find-nearest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(testData)
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                resultDiv.innerHTML = `
+                    <h2>Success!</h2>
+                    <p>Found ${data.nearestShelters.length} shelters</p>
+                    <p>Nearest: ${data.nearestShelters[0].name}</p>
+                    <p>Address: ${data.nearestShelters[0].address}</p>
+                `;
+                
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<h2>Error:</h2><p>${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

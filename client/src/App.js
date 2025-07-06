@@ -78,6 +78,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [nearestShelter, setNearestShelter] = useState(null);
+  const [searchResults, setSearchResults] = useState(null);
   const [userPosition, setUserPosition] = useState(null);
   const [isLocationSupported, setIsLocationSupported] = useState(true);
   const [language, setLanguage] = useState('sv');
@@ -102,22 +103,64 @@ function App() {
     setNearestShelter(null);
 
     try {
+      console.log('🔍 Starting search for nearest shelter...');
+      
       // Få användarens position
       const position = await getCurrentPosition();
       const { latitude, longitude } = position.coords;
       
+      console.log('📍 Got user position:', latitude, longitude);
       setUserPosition({ lat: latitude, lng: longitude });
 
       // Skicka förfrågan till backend
+      console.log('🌐 Sending request to API...');
       const response = await axios.post('/api/find-nearest', {
         lat: latitude,
         lng: longitude
       });
 
-      setNearestShelter(response.data);
+      console.log('✅ API response received:', response.data);
+      setNearestShelter(response.data.nearestShelters[0]); // Ta första skyddsrummet från listan
+      setSearchResults(response.data); // Spara hela resultatet för senare användning
     } catch (err) {
-      console.error('Fel vid sökning:', err);
-      setError(err.message || t.errors.unknownError);
+      console.error('❌ Error during search:', err);
+      // Visa mer detaljerad felmeddelande
+      let errorMessage = err.message || t.errors.unknownError;
+      if (err.response) {
+        errorMessage = `API Error: ${err.response.status} - ${err.response.statusText}`;
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Test-funktion med hårdkodade koordinater (Stockholm centrum)
+  const testWithStockholm = async () => {
+    setLoading(true);
+    setError('');
+    setNearestShelter(null);
+
+    try {
+      console.log('🧪 Testing with Stockholm coordinates...');
+      const testCoords = { lat: 59.3293, lng: 18.0686 };
+      
+      setUserPosition(testCoords);
+
+      // Skicka förfrågan till backend
+      console.log('🌐 Sending test request to API...');
+      const response = await axios.post('/api/find-nearest', testCoords);
+
+      console.log('✅ Test API response received:', response.data);
+      setNearestShelter(response.data.nearestShelters[0]); // Ta första skyddsrummet från listan
+      setSearchResults(response.data); // Spara hela resultatet
+    } catch (err) {
+      console.error('❌ Test error:', err);
+      let errorMessage = err.message || t.errors.unknownError;
+      if (err.response) {
+        errorMessage = `API Error: ${err.response.status} - ${err.response.statusText}`;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -164,6 +207,7 @@ function App() {
 
   const resetSearch = () => {
     setNearestShelter(null);
+    setSearchResults(null);
     setError('');
     setUserPosition(null);
   };
@@ -209,6 +253,24 @@ function App() {
                 ) : (
                   t.findButton
                 )}
+              </button>
+
+              {/* Test-knapp för felsökning */}
+              <button 
+                className="test-button"
+                onClick={testWithStockholm}
+                disabled={loading}
+                style={{
+                  marginTop: '10px',
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                🧪 Test med Stockholm (för felsökning)
               </button>
 
               {!isLocationSupported && (

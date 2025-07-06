@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skyddsrum Finder - Debug Version</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            min-width: 200px;
+        }
+        .button:hover {
+            background: #218838;
+        }
+        .button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            text-align: left;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .error {
+            color: #ff6b6b;
+            background: rgba(255, 107, 107, 0.2);
+        }
+        .shelter {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 1s ease-in-out infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏠 Skyddsrum Finder</h1>
+        <p>Hitta närmaste skyddsrum i Stockholms län</p>
+        
+        <button id="testBtn" class="button">
+            🧪 Test API (Stockholm centrum)
+        </button>
+        
+        <button id="geoBtn" class="button">
+            📍 Använd min position
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        console.log('🚀 Debug version loaded');
+        
+        const resultDiv = document.getElementById('result');
+        const testBtn = document.getElementById('testBtn');
+        const geoBtn = document.getElementById('geoBtn');
+        
+        function showLoading(button) {
+            button.innerHTML = '<span class="loading"></span> Söker...';
+            button.disabled = true;
+        }
+        
+        function hideLoading(button, originalText) {
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+        
+        function showError(message) {
+            resultDiv.innerHTML = `<div class="result error"><h3>❌ Fel</h3><p>${message}</p></div>`;
+        }
+        
+        function showResults(data) {
+            const shelters = data.nearestShelters.slice(0, 3);
+            let html = `
+                <div class="result">
+                    <h3>✅ Hittade ${data.nearestShelters.length} skyddsrum</h3>
+                    <p><strong>📍 Position:</strong> ${data.userLocation.lat.toFixed(4)}, ${data.userLocation.lng.toFixed(4)}</p>
+                    <h4>🏠 Närmaste skyddsrum:</h4>
+            `;
+            
+            shelters.forEach((shelter, i) => {
+                html += `
+                    <div class="shelter">
+                        <strong>${i + 1}. ${shelter.name}</strong><br>
+                        📍 ${shelter.address}<br>
+                        🏛️ ${shelter.municipality}<br>
+                        📏 ${shelter.distanceText} | 👥 ${shelter.capacity} platser
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            resultDiv.innerHTML = html;
+        }
+        
+        async function testAPI(coords) {
+            try {
+                console.log('🌐 Sending request to /api/find-nearest');
+                const response = await fetch('/api/find-nearest', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(coords)
+                });
+                
+                console.log('📡 Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('✅ Response data:', data);
+                
+                showResults(data);
+                
+            } catch (error) {
+                console.error('❌ Error:', error);
+                showError(error.message);
+            }
+        }
+        
+        // Test med Stockholm centrum
+        testBtn.addEventListener('click', async () => {
+            console.log('🧪 Testing with Stockholm coordinates');
+            showLoading(testBtn);
+            
+            await testAPI({ lat: 59.3293, lng: 18.0686 });
+            
+            hideLoading(testBtn, '🧪 Test API (Stockholm centrum)');
+        });
+        
+        // Test med geolocation
+        geoBtn.addEventListener('click', async () => {
+            console.log('📍 Using geolocation');
+            showLoading(geoBtn);
+            
+            if (!navigator.geolocation) {
+                hideLoading(geoBtn, '📍 Använd min position');
+                showError('Geolocation stöds inte av denna webbläsare');
+                return;
+            }
+            
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const coords = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    console.log('📍 Got coordinates:', coords);
+                    
+                    await testAPI(coords);
+                    hideLoading(geoBtn, '📍 Använd min position');
+                },
+                (error) => {
+                    console.error('📍 Geolocation error:', error);
+                    hideLoading(geoBtn, '📍 Använd min position');
+                    
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            showError('Du måste tillåta platsåtkomst för att använda denna funktion');
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            showError('Positionsinformation är inte tillgänglig');
+                            break;
+                        case error.TIMEOUT:
+                            showError('Förfrågan om position tog för lång tid');
+                            break;
+                        default:
+                            showError('Ett okänt fel uppstod vid positionsbestämning');
+                            break;
+                    }
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 60000
+                }
+            );
+        });
+        
+        console.log('✅ Event listeners attached');
+    </script>
+</body>
+</html>
